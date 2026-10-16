@@ -8,6 +8,14 @@ info:
     All responses follow a consistent envelope:
       Success: `{ "success": true, "message": string, "data": T }`
       Failure: `{ "success": false, "message": string, "data": null }`
+
+    Image uploads use the multipart field `file`.
+    Allowed types are JPEG (`image/jpeg` or `image/jpg`), PNG, WebP, and GIF.
+    The file header must match that format. A matching Content-Type with other bytes returns 400.
+    SVG is not accepted: uploads are stored and served as submitted, and SVG can contain scripts.
+    The maximum size is 5 MB (5242880 bytes).
+    An unsupported or mismatched file returns 400. A larger file returns 413.
+    Both use the failure envelope and do not include internal error details.
 servers:
   - url: /api
 
@@ -202,6 +210,7 @@ paths:
                     properties:
                       data: { $ref: "#/components/schemas/Event" }
         "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "500": { $ref: "#/components/responses/InternalError" }
@@ -249,6 +258,8 @@ paths:
                   - type: object
                     properties:
                       data: { $ref: "#/components/schemas/Event" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -307,6 +318,7 @@ paths:
                     properties:
                       data: { $ref: "#/components/schemas/Partner" }
         "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "500": { $ref: "#/components/responses/InternalError" }
@@ -354,6 +366,8 @@ paths:
                   - type: object
                     properties:
                       data: { $ref: "#/components/schemas/Partner" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -395,6 +409,7 @@ paths:
                     properties:
                       data: { $ref: "#/components/schemas/PartnerApplication" }
         "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
         "500": { $ref: "#/components/responses/InternalError" }
     get:
       tags: [Partner Applications]
@@ -560,6 +575,7 @@ paths:
                     properties:
                       data: { $ref: "#/components/schemas/Project" }
         "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "500": { $ref: "#/components/responses/InternalError" }
@@ -654,6 +670,8 @@ paths:
                   - type: object
                     properties:
                       data: { $ref: "#/components/schemas/Project" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -772,6 +790,7 @@ paths:
                     properties:
                       data: { $ref: "#/components/schemas/Review" }
         "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
         "500": { $ref: "#/components/responses/InternalError" }
 
   /reviews/{id}:
@@ -817,6 +836,8 @@ paths:
                   - type: object
                     properties:
                       data: { $ref: "#/components/schemas/Review" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -887,6 +908,15 @@ components:
         data: { type: object, nullable: true, example: null }
       required: [success, message, data]
 
+    ImageUpload:
+      type: string
+      format: binary
+      description: >
+        Multipart field `file`. Allowed types: JPEG (`image/jpeg` or `image/jpg`),
+        PNG, WebP, and GIF. The file header must match one of those formats.
+        SVG is not accepted. Maximum size is 5 MB (5242880 bytes).
+        Unsupported or mismatched files return 400. Files over the limit return 413.
+
     Review:
       type: object
       properties:
@@ -906,9 +936,7 @@ components:
         name: { type: string }
         role: { type: string }
         message: { type: string }
-        file:
-          type: string
-          format: binary
+        file: { $ref: "#/components/schemas/ImageUpload" }
 
     ReviewUpdateInput:
       type: object
@@ -916,9 +944,7 @@ components:
         name: { type: string }
         role: { type: string }
         message: { type: string }
-        file:
-          type: string
-          format: binary
+        file: { $ref: "#/components/schemas/ImageUpload" }
 
     Member:
       type: object
@@ -991,7 +1017,7 @@ components:
       properties:
         title: { type: string }
         tagline: { type: string }
-        file: { type: string, format: binary, description: "Event image" }
+        file: { $ref: "#/components/schemas/ImageUpload" }
         description: { type: string }
         category: { type: string }
         mode: { type: string, example: "in-person" }
@@ -1013,12 +1039,7 @@ components:
       properties:
         title: { type: string }
         tagline: { type: string }
-        file:
-          {
-            type: string,
-            format: binary,
-            description: "Replacement image (optional)",
-          }
+        file: { $ref: "#/components/schemas/ImageUpload" }
         description: { type: string }
         category: { type: string }
         mode: { type: string }
@@ -1053,7 +1074,7 @@ components:
       properties:
         name: { type: string }
         websiteUrl: { type: string }
-        file: { type: string, format: binary, description: "Partner logo" }
+        file: { $ref: "#/components/schemas/ImageUpload" }
         description: { type: string }
         email: { type: string, format: email }
         partnershipReason: { type: string }
@@ -1063,12 +1084,7 @@ components:
       properties:
         name: { type: string }
         websiteUrl: { type: string }
-        file:
-          {
-            type: string,
-            format: binary,
-            description: "Replacement logo (optional)",
-          }
+        file: { $ref: "#/components/schemas/ImageUpload" }
         description: { type: string }
         email: { type: string, format: email }
         partnershipReason: { type: string }
@@ -1137,7 +1153,7 @@ components:
         ]
       properties:
         organisationName: { type: string }
-        file: { type: string, format: binary, description: "Organisation logo" }
+        file: { $ref: "#/components/schemas/ImageUpload" }
         organisationType:
           type: string
           enum:
@@ -1216,7 +1232,7 @@ components:
         slug: { type: string }
         repoOwner: { type: string }
         repoName: { type: string }
-        file: { type: string, format: binary, description: "Project image" }
+        file: { $ref: "#/components/schemas/ImageUpload" }
         tagline: { type: string }
         category: { type: string }
         status: { type: string, enum: [active, archived, paused] }
@@ -1230,12 +1246,7 @@ components:
         slug: { type: string }
         repoOwner: { type: string }
         repoName: { type: string }
-        file:
-          {
-            type: string,
-            format: binary,
-            description: "Replacement image (optional)",
-          }
+        file: { $ref: "#/components/schemas/ImageUpload" }
         tagline: { type: string }
         category: { type: string }
         status: { type: string, enum: [active, archived, paused] }
@@ -1279,6 +1290,11 @@ components:
           schema: { $ref: "#/components/schemas/ApiError" }
     NotFound:
       description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    PayloadTooLarge:
+      description: Uploaded image exceeds the 5 MB limit
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ApiError" }

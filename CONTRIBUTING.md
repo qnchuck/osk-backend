@@ -78,7 +78,7 @@ Keep the summary under 72 characters. Add a longer body if the change needs cont
 - Controllers export named functions in a default object (see `src/controllers/event.controller.ts` for the pattern). Prefer clarity over cleverness.
 - Routes go in `src/routes/`, business logic in `src/services/`, request handling in `src/controllers/`.
 - Use the `response.success` and `response.failure` helpers from `src/utils/response.ts` so the API envelope stays consistent.
-- Image uploads use the `upload` middleware and the helpers in `src/utils/cloudinary-upload.ts`. On failure, roll back uploaded images with `destroyImage`.
+- Image uploads use the shared `upload` middleware (`src/middlewares/upload.middleware.ts`) and the helpers in `src/utils/cloudinary-upload.ts`. Send one image in the multipart field `file`. Allowed types are JPEG, PNG, WebP, and GIF, with a 5 MB limit. The middleware checks the file header, not only the Content-Type. SVG is rejected because uploads are stored as submitted and are not sanitized. Unsupported or mismatched files return 400 and oversized files return 413, using the standard error envelope. A missing file is still handled by the controller. Cloudinary failures stay server errors (500); roll back a stored image with `destroyImage`.
 - Don't commit secrets, `.env` files, or generated artifacts.
 
 Run before pushing:
